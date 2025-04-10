@@ -22,7 +22,7 @@ y el archivo .pt perteneciente al modelo
     - pip install huggingface-hub==0.24.7
 De esta manera, y con el hipnoss.pt en la carpeta de main, el modelo puede ser ejecutado
 
->>Instalar bibliotecas en el entorno<<
+>Instalar bibliotecas en el entorno<
 (en caso de no detectar pip en el entorno, ir a la terminal del sistema y ejecutar
     sudo apt-get install python3-pip y pip3 install virtualenv para poder crear el entorno y usar pip desde ahí)
 
