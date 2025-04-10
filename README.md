@@ -45,9 +45,9 @@ Archivo principal: main.py
 
 Scripts auxiliares gestionados por hilos: 
 
--movementDetection.py
--qrDetector.py
--thermalCamera.py
--runyolov10.py
--csiCameras.py
--slam.py
+ -movementDetection.py
+ -qrDetector.py
+ -thermalCamera.py
+ -runyolov10.py
+ -csiCameras.py
+ -slam.py
