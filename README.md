@@ -13,8 +13,8 @@ y el archivo .pt perteneciente al modelo
 
 >Para hacer funcionar el script runyolov10.py que despliega el modelo entrenado tipo S de 30 objetos, es necesario seguir los siguiente pasos:
 
-  * regresar una carpeta hacia atrás del entorno (salir de .venv)*
-  * ejecutar las siguientes líneas en la terminal:
+  * Regresar una carpeta hacia atrás del entorno (salir de .venv)*
+  * Ejecutar las siguientes líneas en la terminal:
     - git clone https://github.com/THU-MIG/yolov10.git
     - cd yolov10
     - pip install .
