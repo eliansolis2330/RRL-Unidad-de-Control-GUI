@@ -27,16 +27,16 @@ De esta manera, y con el hipnoss.pt en la carpeta de main, el modelo puede ser e
     sudo apt-get install python3-pip y pip3 install virtualenv para poder crear el entorno y usar pip desde ahí)
 
 Ejecutar en la terminal del entorno:
-    - pip install supervision
-    - pip install ultralytics
-    - pip install opencv-python
-    - pip install customtkinter
-    - pip install nancocamera
-    - pip install SpeechRecognition
-    - pip install pillow
-    - pip install busio
-    - pip install board (para jetpack)
-    - pip install import adafruit_mlx90640
+    * pip install supervision
+    * pip install ultralytics
+    * pip install opencv-python
+    * pip install customtkinter
+    * pip install nancocamera
+    * pip install SpeechRecognition
+    * pip install pillow
+    * pip install busio
+    * pip install board (para jetpack)
+    * pip install import adafruit_mlx90640
 
 Una vez instaladas todas las librerías, y con todos los archivos en el mismo directorio, el proyecto puede ser ejecutado
 En caso de obtener una advertencia de tipo 'no module named ...', instalar esa librería.
@@ -45,9 +45,9 @@ Archivo principal: main.py
 
 Scripts auxiliares gestionados por hilos: 
 
- -movementDetection.py
- -qrDetector.py
- -thermalCamera.py
- -runyolov10.py
- -csiCameras.py
- -slam.py
+ * movementDetection.py
+ * qrDetector.py
+ * thermalCamera.py
+ * runyolov10.py
+ * csiCameras.py
+ * slam.py
