@@ -40,3 +40,14 @@ Ejecutar en la terminal del entorno:
 
 Una vez instaladas todas las librerías, y con todos los archivos en el mismo directorio, el proyecto puede ser ejecutado
 En caso de obtener una advertencia de tipo 'no module named ...', instalar esa librería.
+
+Archivo principal: main.py 
+
+Scripts auxiliares gestionados por hilos: 
+
+-movementDetection.py
+-qrDetector.py
+-thermalCamera.py
+-runyolov10.py
+-csiCameras.py
+-slam.py
