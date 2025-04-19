@@ -6,9 +6,20 @@ import speech_recognition as sr
 import threading
 import subprocess
 import serial
+import sounddevice as sd
+import queue
+import sys
+import json
+from vosk import Model, KaldiRecognizer
 
+
+
+audio_detection_active = False
+recognition_thread = None
 SERIAL_PORT = "/dev/ttyTHS0"
 BAUD_RATE = 115200
+MODEL_PATH = "/home/elian/Downloads/vosk-model-small-en-us-0.15"
+q = queue.Queue()
 
 try:
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.01)
@@ -84,7 +95,7 @@ def update_tachometer(tacho_canvas):
 
     tacho_canvas.delete("needle")
     tacho_canvas.delete("value")
-    tacho_canvas.create_line(center_x, center_y, end_x, end_y, fill="red", width=6, capstyle="round", tag="needle")
+    tacho_canvas.create_line(center_x, center_y, end_x, end_y, fill="#4BEFFF", width=6, capstyle="round", tag="needle")
     tacho_canvas.create_text(center_x, 260, text=f"Polaridad: {polarity}", fill="white", font=("Arial", 16, "bold"),
                              tag="value")
     tacho_canvas.after(500, update_tachometer, tacho_canvas)
@@ -107,6 +118,10 @@ def setup_cameras(indices, camera_frames):
             print(f"Error al abrir la cámara con índice {idx}")
     return caps
 
+def callback(indata, frames, time, status):
+    if status:
+        print("⚠", status)
+    q.put(bytes(indata))
 
 def update_video(index, cap, camera_label):
     ret, frame = cap.read()
@@ -118,39 +133,49 @@ def update_video(index, cap, camera_label):
         camera_label.image = frame_photo
     camera_label.after(30, update_video, index, cap, camera_label)
 
-
-def update_speech_to_text(speech_label):
-    recognizer = sr.Recognizer()
-    mic = sr.Microphone()
+def start_offline_speech_recognition(speech_label):
     global audio_detection_active
+    try:
+        model = Model(MODEL_PATH)
+        rec = KaldiRecognizer(model, 16000)
+        rec.SetWords(True)
 
-    def listen():
-        while audio_detection_active:
-            try:
-                with mic as source:
-                    recognizer.adjust_for_ambient_noise(source)
-                    audio = recognizer.listen(source)
-                text = recognizer.recognize_google(audio, language="es-ES")
-                speech_label.configure(text=f"Reconocido: {text}")
-            except sr.UnknownValueError:
-                speech_label.configure(text="No se pudo reconocer el audio")
-            except sr.RequestError:
-                speech_label.configure(text="Error en el servicio de reconocimiento")
+        with sd.RawInputStream(samplerate=16000, blocksize=8000, dtype='int16',
+                               channels=1, callback=callback):
+            print("🎤 Reconocimiento activado")
+            while audio_detection_active:
+                data = q.get()
+                if rec.AcceptWaveform(data):
+                    result = json.loads(rec.Result())
+                    text = result.get("text", "")
+                    print("Texto:", text)
+                    speech_label.configure(text=f".:| {text}")
+                else:
+                    partial = json.loads(rec.PartialResult())
+                    partial_text = partial.get("partial", "")
+                    print("→", partial_text, end='\r')
+                    speech_label.configure(text=f"🗣 SpchTxt: {partial_text}")
 
-    thread = threading.Thread(target=listen)
-    thread.daemon = True
-    thread.start()
-
+    except Exception as e:
+        print(f"Error en reconocimiento de voz: {e}")
+        speech_label.configure(text="Error en reconocimiento")
 
 def toggle_audio_detection(speech_label):
-    global audio_detection_active
+    global audio_detection_active, recognition_thread
+
     if audio_detection_active:
         audio_detection_active = False
-        speech_label.configure(text="Detección de audio desactivada")
+        speech_label.configure(text="🔇 Detección de audio desactivada")
+        print("🔇 Reconocimiento desactivado")
     else:
         audio_detection_active = True
-        update_speech_to_text(speech_label)
-
+        speech_label.configure(text=".:| Detección de audio activada...")
+        recognition_thread = threading.Thread(
+            target=start_offline_speech_recognition,
+            args=(speech_label,),
+            daemon=True
+        )
+        recognition_thread.start()
 
 def create_gui():
     global audio_detection_active
@@ -199,7 +224,7 @@ def create_gui():
 
     for text, command in buttons:
         button = ctk.CTkButton(button_frame, text=text, width=210, height=40, font=("Arial", 18, "bold"),
-                               text_color="black", fg_color="white", hover_color="#cccccc", command=command)
+                               text_color="black", fg_color="white", hover_color="#cccccc", command=command, border_width=4, border_color="#4BEFFF", corner_radius=17)
         button.pack(side="left", padx=20, pady=10)
 
     camera_indices = []
@@ -215,7 +240,7 @@ def create_gui():
     camera_input.pack(side="right", padx=10)
 
     save_button = ctk.CTkButton(header_frame, text="Configurar Cámaras", font=("Arial", 14, "bold"),
-                                text_color="white", fg_color="red", hover_color="#cccccc", command=save_indices)
+                                text_color="black", fg_color="#4BEFFF", hover_color="#cccccc", command=save_indices, corner_radius=15)
     save_button.pack(side="right", padx=10)
 
     main_frame = ctk.CTkFrame(root, fg_color="black")
@@ -225,15 +250,15 @@ def create_gui():
 
     camera_labels = []
     for i in range(2):
-        frame = ctk.CTkFrame(main_frame, fg_color="#1e1e1e", corner_radius=10)
+        frame = ctk.CTkFrame(main_frame, fg_color="#1e1e1e", corner_radius=17)
         frame.grid(row=i // 2, column=i % 2, padx=10, pady=10, sticky="nsew")
         label = ctk.CTkLabel(frame, text=f"Cámara {i + 1}", font=("Arial", 18, "bold"), text_color="white")
         label.pack(expand=True, fill="both")
         camera_labels.append(label)
-    widget_frame = ctk.CTkFrame(main_frame, fg_color="black", corner_radius=10)
+    widget_frame = ctk.CTkFrame(main_frame, fg_color="black", corner_radius=17)
     widget_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=10, sticky="nsew")
 
-    tachometer_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=10)
+    tachometer_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=17, border_width=2, border_color="#4BEFFF",)
     tachometer_frame.pack(pady=10, fill="x", expand=True)
 
     tachometer_label = ctk.CTkLabel(tachometer_frame, text="Tacómetro de Polaridad", font=("Arial", 18, "bold"),
@@ -246,7 +271,7 @@ def create_gui():
     draw_tachometer_background(tacho_canvas)
     update_tachometer(tacho_canvas)
 
-    air_quality_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=10)
+    air_quality_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=17, border_width=2, border_color="#4BEFFF",)
     air_quality_frame.pack(pady=10, fill="x", expand=True)
 
     air_quality_label = ctk.CTkLabel(air_quality_frame, text="CO: -- PPM", font=("Arial", 18, "bold"),
@@ -254,14 +279,13 @@ def create_gui():
     air_quality_label.pack()
     update_air_quality(air_quality_label)
 
-    speech_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=10)
+    speech_frame = ctk.CTkFrame(widget_frame, fg_color="#1e1e1e", corner_radius=17, border_width=2, border_color="#4BEFFF",)
     speech_frame.pack(pady=10, fill="x", expand=True)
 
     speech_label = ctk.CTkLabel(speech_frame, text="Audio: No detectado", font=("Arial", 18, "bold"),
                                 text_color="white")
     speech_label.pack()
     root.mainloop()
-
 
 if __name__ == "__main__":
     create_gui()
